@@ -1,11 +1,9 @@
-## My Project
+## aws-cloudformation-resource-providers-msk-replicator
 
-TODO: Fill this README out!
+The CloudFormation Resource Provider Package For Amazon MSK Managed Replication
 
-Be sure to:
-
-* Change the title in this README
-* Edit your repository description on GitHub
+Cloudformation Resources in this package:
+- AWS::MSK::Replicator
 
 ## Security
 
