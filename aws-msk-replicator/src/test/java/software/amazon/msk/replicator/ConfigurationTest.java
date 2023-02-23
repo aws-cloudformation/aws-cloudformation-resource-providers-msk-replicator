@@ -28,11 +28,11 @@ public class ConfigurationTest extends AbstractTestBase {
     @Test
     public void test_Tags() {
         // Given
-        ResourceModel model = ResourceModel.builder().tags(TAGS).build();
+        ResourceModel model = ResourceModel.builder().tags(TagHelper.convertToSet(TAGS)).build();
         // When
         Map<String, String> response = configuration.resourceDefinedTags(model);
         // Then
         assertThat(response).isNotNull();
-        assertThat(response).isEqualTo(model.getTags());
+        assertThat(response).isEqualTo(TagHelper.convertToMap(model.getTags()));
     }
 }

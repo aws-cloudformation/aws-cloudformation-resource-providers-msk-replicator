@@ -14,9 +14,13 @@ import software.amazon.awssdk.services.kafka.model.KafkaException;
 import software.amazon.awssdk.services.kafka.model.NotFoundException;
 import software.amazon.awssdk.services.kafka.model.ReplicatorState;
 import software.amazon.awssdk.services.kafka.model.ServiceUnavailableException;
+import software.amazon.awssdk.services.kafka.model.TagResourceRequest;
+import software.amazon.awssdk.services.kafka.model.TagResourceResponse;
 import software.amazon.awssdk.services.kafka.model.UnauthorizedException;
 import software.amazon.awssdk.services.kafka.model.UpdateReplicationInfoRequest;
 import software.amazon.awssdk.services.kafka.model.UpdateReplicationInfoResponse;
+import software.amazon.awssdk.services.kafka.model.UntagResourceRequest;
+import software.amazon.awssdk.services.kafka.model.UntagResourceResponse;
 import software.amazon.cloudformation.exceptions.CfnNotStabilizedException;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.HandlerErrorCode;
@@ -42,6 +46,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
@@ -124,6 +129,62 @@ public class UpdateHandlerTest extends AbstractTestBase {
         assertThat(response.getErrorCode()).isNull();
 
         verify(proxyClient.client(), atLeast(2)).describeReplicator(any(DescribeReplicatorRequest.class));
+        verify(proxyClient.client(), times(0)).untagResource(any(UntagResourceRequest.class));
+        verify(proxyClient.client(), times(0)).tagResource(any(TagResourceRequest.class));
+        verify(proxyClient.client(), atLeastOnce()).updateReplicationInfo(any(UpdateReplicationInfoRequest.class));
+        verify(kafkaClient, atLeastOnce()).serviceName();
+    }
+
+    @Test
+    public void handleRequest_Success_UpdateReplicationInfoWithTags() {
+
+        final DescribeReplicatorResponse describeReplicatorResponse = getReplicator(ReplicatorState.RUNNING);
+        final DescribeReplicatorResponse describeReplicatorResponseAfter = getReplicator(ReplicatorState.RUNNING).toBuilder()
+                .replicationInfoList(UPDATED_REPLICATION_INFO_DESCRIPTION)
+                .tags(UPDATED_TAGS)
+                .build();
+
+        final UpdateReplicationInfoResponse updateReplicationInfoResponse = UpdateReplicationInfoResponse.builder()
+                .replicatorArn(REPLICATOR_ARN)
+                .replicatorState(ReplicatorState.UPDATING)
+                .build();
+
+        final TagResourceResponse tagResourceResponse = TagResourceResponse.builder().build();
+        final UntagResourceResponse untagResourceResponse = UntagResourceResponse.builder().build();
+        when(proxyClient.client().tagResource(any(TagResourceRequest.class))).thenReturn(tagResourceResponse);
+
+        when(proxyClient.client().untagResource(any(UntagResourceRequest.class))).thenReturn(untagResourceResponse);
+
+        when(proxyClient.client().updateReplicationInfo(any(UpdateReplicationInfoRequest.class)))
+            .thenReturn(updateReplicationInfoResponse);
+
+        when(proxyClient.client().describeReplicator(any(DescribeReplicatorRequest.class)))
+                .thenReturn(describeReplicatorResponse, describeReplicatorResponseAfter);
+
+        final ResourceHandlerRequest<ResourceModel> request =
+            ResourceHandlerRequest.<ResourceModel>builder()
+                .desiredResourceState(buildResourceModel().toBuilder()
+                    .replicationInfoList(UPDATED_REPLICATION_INFOS_MODEL)
+                    .tags(TagHelper.convertToSet(UPDATED_TAGS))
+                    .build())
+                .previousResourceState(buildResourceModel())
+                .clientRequestToken(CLIENT_REQUEST_TOKEN)
+                .build();
+
+        final ProgressEvent<ResourceModel, CallbackContext> response =
+                handler.handleRequest(proxy, request, new CallbackContext(), proxyClient, logger);
+
+        assertThat(response).isNotNull();
+        assertThat(response.getStatus()).isEqualTo(OperationStatus.SUCCESS);
+        assertThat(response.getCallbackDelaySeconds()).isEqualTo(0);
+        assertThat(response.getResourceModel()).isEqualTo(request.getDesiredResourceState());
+        assertThat(response.getResourceModels()).isNull();
+        assertThat(response.getMessage()).isNull();
+        assertThat(response.getErrorCode()).isNull();
+
+        verify(proxyClient.client(), atLeast(2)).describeReplicator(any(DescribeReplicatorRequest.class));
+        verify(proxyClient.client(), atLeastOnce()).tagResource(any(TagResourceRequest.class));
+        verify(proxyClient.client(), atLeastOnce()).untagResource(any(UntagResourceRequest.class));
         verify(proxyClient.client(), atLeastOnce()).updateReplicationInfo(any(UpdateReplicationInfoRequest.class));
         verify(kafkaClient, atLeastOnce()).serviceName();
     }
@@ -193,10 +254,10 @@ public class UpdateHandlerTest extends AbstractTestBase {
         final DescribeReplicatorResponse describeReplicatorResponse = getReplicator(ReplicatorState.RUNNING);
 
         when(proxyClient.client().describeReplicator(any(DescribeReplicatorRequest.class)))
-                .thenReturn(describeReplicatorResponse);
+            .thenReturn(describeReplicatorResponse);
 
         when(proxyClient.client().updateReplicationInfo(any(UpdateReplicationInfoRequest.class)))
-                .thenThrow(kafkaException);
+            .thenThrow(kafkaException);
 
         final ResourceHandlerRequest<ResourceModel> request =
             ResourceHandlerRequest.<ResourceModel>builder()
@@ -207,7 +268,7 @@ public class UpdateHandlerTest extends AbstractTestBase {
                 .build();
 
         final ProgressEvent<ResourceModel, CallbackContext> response =
-                handler.handleRequest(proxy, request, new CallbackContext(), proxyClient, logger);
+            handler.handleRequest(proxy, request, new CallbackContext(), proxyClient, logger);
 
         assertThat(response).isNotNull();
         assertThat(response.getStatus()).isEqualTo(OperationStatus.FAILED);
@@ -215,6 +276,85 @@ public class UpdateHandlerTest extends AbstractTestBase {
 
         verify(proxyClient.client(), atLeast(1)).describeReplicator(any(DescribeReplicatorRequest.class));
         verify(proxyClient.client(), atLeastOnce()).updateReplicationInfo(any(UpdateReplicationInfoRequest.class));
+        verify(kafkaClient, atLeastOnce()).serviceName();
+    }
+
+    @ParameterizedTest
+    @MethodSource("KafkaErrorToCfnErrorUpdateOperations")
+    public void handleRequest_untagRequestThrowsException(
+        Class<KafkaException> kafkaException, HandlerErrorCode cfnError) {
+
+        final DescribeReplicatorResponse describeReplicatorResponse = getReplicator(ReplicatorState.RUNNING);
+
+        when(proxyClient.client().describeReplicator(any(DescribeReplicatorRequest.class)))
+                .thenReturn(describeReplicatorResponse);
+
+        when(proxyClient.client().untagResource(any(UntagResourceRequest.class)))
+                .thenThrow(kafkaException);
+
+        final ResourceHandlerRequest<ResourceModel> request =
+            ResourceHandlerRequest.<ResourceModel>builder()
+                .previousResourceState(buildResourceModel())
+                .desiredResourceState(
+                    buildResourceModel().toBuilder()
+                        .tags(TagHelper.convertToSet(REMOVED_TAGS))
+                        .build()
+                )
+                .clientRequestToken(CLIENT_REQUEST_TOKEN)
+                .previousResourceTags(TAGS)
+                .desiredResourceTags(REMOVED_TAGS)
+                .build();
+
+        final ProgressEvent<ResourceModel, CallbackContext> response =
+            handler.handleRequest(proxy, request, new CallbackContext(), proxyClient, logger);
+
+        assertThat(response).isNotNull();
+        assertThat(response.getStatus()).isEqualTo(OperationStatus.FAILED);
+        assertThat(response.getCallbackDelaySeconds()).isEqualTo(0);
+        assertThat(response.getResourceModels()).isNull();
+        assertThat(response.getErrorCode()).isEqualTo(cfnError);
+
+        verify(proxyClient.client()).untagResource(any(UntagResourceRequest.class));
+        verify(kafkaClient, atLeastOnce()).serviceName();
+    }
+
+    @ParameterizedTest
+    @MethodSource("KafkaErrorToCfnErrorUpdateOperations")
+    public void handleRequest_tagRequestThrowsException(
+        Class<KafkaException> kafkaException, HandlerErrorCode cfnError) {
+
+        final DescribeReplicatorResponse describeReplicatorResponse = getReplicator(ReplicatorState.RUNNING);
+
+        when(proxyClient.client().describeReplicator(any(DescribeReplicatorRequest.class)))
+            .thenReturn(describeReplicatorResponse);
+
+        when(proxyClient.client().tagResource(any(TagResourceRequest.class)))
+            .thenThrow(kafkaException);
+
+        final ResourceHandlerRequest<ResourceModel> request =
+            ResourceHandlerRequest.<ResourceModel>builder()
+                .previousResourceState(buildResourceModel())
+                .desiredResourceState(
+                    buildResourceModel().toBuilder()
+                        .tags(TagHelper.convertToSet(ADD_TAGS))
+                        .build()
+                )
+                .clientRequestToken(CLIENT_REQUEST_TOKEN)
+                .previousResourceTags(TAGS)
+                .desiredResourceTags(ADD_TAGS)
+                .build();
+
+        final ProgressEvent<ResourceModel, CallbackContext> response =
+            handler.handleRequest(proxy, request, new CallbackContext(), proxyClient, logger);
+
+        assertThat(response).isNotNull();
+        assertThat(response.getStatus()).isEqualTo(OperationStatus.FAILED);
+        assertThat(response.getCallbackDelaySeconds()).isEqualTo(0);
+        assertThat(response.getResourceModels()).isNull();
+        assertThat(response.getErrorCode()).isEqualTo(cfnError);
+
+        verify(proxyClient.client()).tagResource(any(TagResourceRequest.class));
+        verify(proxyClient.client(), times(0)).untagResource(any(UntagResourceRequest.class));
         verify(kafkaClient, atLeastOnce()).serviceName();
     }
 
