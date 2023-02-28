@@ -32,7 +32,6 @@ public class UpdateHandler extends BaseHandlerStd {
         final Logger logger) {
 
         this.logger = logger;
-        TagHelper tagHelper = new TagHelper();
 
         final ResourceModel desiredModel = request.getDesiredResourceState();
 
@@ -55,11 +54,11 @@ public class UpdateHandler extends BaseHandlerStd {
         logger.log(String.format("currentModel: %s", currentModel));
 
         ProgressEvent<ResourceModel, CallbackContext> progressEvent = ProgressEvent.progress(desiredModel, callbackContext);
-        if (tagHelper.shouldUpdateTags(request.getDesiredResourceState(), request)) {
-            final Map<String, String> previousTags = tagHelper.getPreviouslyAttachedTags(request);
-            final Map<String, String> desiredTags = tagHelper.getNewDesiredTags(desiredModel, request);
-            final Map<String, String> addedTags = tagHelper.generateTagsToAdd(previousTags, desiredTags);
-            final Set<String> removedTags = tagHelper.generateTagsToRemove(previousTags, desiredTags);
+        if (TagHelper.shouldUpdateTags(request.getDesiredResourceState(), request)) {
+            final Map<String, String> previousTags = TagHelper.getPreviouslyAttachedTags(request);
+            final Map<String, String> desiredTags = TagHelper.getNewDesiredTags(desiredModel, request);
+            final Map<String, String> addedTags = TagHelper.generateTagsToAdd(previousTags, desiredTags);
+            final Set<String> removedTags = TagHelper.generateTagsToRemove(previousTags, desiredTags);
 
             progressEvent =  progressEvent
                 .then(progress -> untagResource(
@@ -198,7 +197,7 @@ public class UpdateHandler extends BaseHandlerStd {
     /**
      * tagResource during update
      *
-     * Calls the service:TagResource API.
+     * Calls the kafka:TagResource API.
      */
     private ProgressEvent<ResourceModel, CallbackContext> tagResource(
         final AmazonWebServicesClientProxy proxy,
@@ -230,7 +229,7 @@ public class UpdateHandler extends BaseHandlerStd {
     /**
      * untagResource during update
      *
-     * Calls the service:UntagResource API.
+     * Calls the kafka:UntagResource API.
      */
     private ProgressEvent<ResourceModel, CallbackContext> untagResource(
         final AmazonWebServicesClientProxy proxy,

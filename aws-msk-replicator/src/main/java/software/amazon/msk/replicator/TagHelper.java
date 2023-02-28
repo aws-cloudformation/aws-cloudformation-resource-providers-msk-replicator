@@ -68,7 +68,7 @@ public class TagHelper {
      * Generate tags to put into resource creation request.
      * This includes user defined tags and system tags as well.
      */
-    public final Map<String, String> generateTagsForCreate(final ResourceModel resourceModel, final ResourceHandlerRequest<ResourceModel> handlerRequest) {
+    public static Map<String, String> generateTagsForCreate(final ResourceModel resourceModel, final ResourceHandlerRequest<ResourceModel> handlerRequest) {
         final Map<String, String> tagMap = new HashMap<>();
 
         // merge system tags with desired resource tags if your service supports CloudFormation system tags
@@ -89,7 +89,7 @@ public class TagHelper {
      *
      * Determines whether user defined tags have been changed during update.
      */
-    public final boolean shouldUpdateTags(final ResourceModel resourceModel, final ResourceHandlerRequest<ResourceModel> handlerRequest) {
+    public static boolean shouldUpdateTags(final ResourceModel resourceModel, final ResourceHandlerRequest<ResourceModel> handlerRequest) {
         final Map<String, String> previousTags = getPreviouslyAttachedTags(handlerRequest);
         final Map<String, String> desiredTags = getNewDesiredTags(resourceModel, handlerRequest);
         return ObjectUtils.notEqual(previousTags, desiredTags);
@@ -102,7 +102,7 @@ public class TagHelper {
      * we will get previous attached user defined tags from both handlerRequest.getPreviousResourceTags (stack tags)
      * and handlerRequest.getPreviousResourceState (resource tags).
      */
-    public Map<String, String> getPreviouslyAttachedTags(final ResourceHandlerRequest<ResourceModel> handlerRequest) {
+    public static Map<String, String> getPreviouslyAttachedTags(final ResourceHandlerRequest<ResourceModel> handlerRequest) {
         final Map<String, String> previousTags = new HashMap<>();
 
         // get previous stack level tags from handlerRequest
@@ -123,7 +123,7 @@ public class TagHelper {
      * If stack tags and resource tags are not merged together in Configuration class,
      * we will get new user defined tags from both resource model and previous stack tags.
      */
-    public Map<String, String> getNewDesiredTags(final ResourceModel resourceModel, final ResourceHandlerRequest<ResourceModel> handlerRequest) {
+    public static Map<String, String> getNewDesiredTags(final ResourceModel resourceModel, final ResourceHandlerRequest<ResourceModel> handlerRequest) {
         final Map<String, String> desiredTags = new HashMap<>();
 
         // get desired stack level tags from handlerRequest
@@ -141,7 +141,7 @@ public class TagHelper {
      *
      * Determines the tags the customer desired to define or redefine.
      */
-    public Map<String, String> generateTagsToAdd(final Map<String, String> previousTags, final Map<String, String> desiredTags) {
+    public static Map<String, String> generateTagsToAdd(final Map<String, String> previousTags, final Map<String, String> desiredTags) {
         return desiredTags.entrySet().stream()
             .filter(e -> !previousTags.containsKey(e.getKey()) || !Objects.equals(previousTags.get(e.getKey()), e.getValue()))
             .collect(Collectors.toMap(
@@ -154,7 +154,7 @@ public class TagHelper {
      *
      * Determines the tags the customer desired to remove from the function.
      */
-    public Set<String> generateTagsToRemove(final Map<String, String> previousTags, final Map<String, String> desiredTags) {
+    public static Set<String> generateTagsToRemove(final Map<String, String> previousTags, final Map<String, String> desiredTags) {
         final Set<String> desiredTagNames = desiredTags.keySet();
 
         return previousTags.keySet().stream()
