@@ -18,7 +18,7 @@ To declare this entity in your AWS CloudFormation template, use the following sy
         "<a href="#kafkaclusters" title="KafkaClusters">KafkaClusters</a>" : <i>[ <a href="kafkacluster.md">KafkaCluster</a>, ... ]</i>,
         "<a href="#replicationinfolist" title="ReplicationInfoList">ReplicationInfoList</a>" : <i>[ <a href="replicationinfo.md">ReplicationInfo</a>, ... ]</i>,
         "<a href="#serviceexecutionrolearn" title="ServiceExecutionRoleArn">ServiceExecutionRoleArn</a>" : <i>String</i>,
-        "<a href="#tags" title="Tags">Tags</a>" : <i><a href="tags.md">Tags</a></i>
+        "<a href="#tags" title="Tags">Tags</a>" : <i>[ <a href="tag.md">Tag</a>, ... ]</i>
     }
 }
 </pre>
@@ -36,7 +36,8 @@ Properties:
     <a href="#replicationinfolist" title="ReplicationInfoList">ReplicationInfoList</a>: <i>
       - <a href="replicationinfo.md">ReplicationInfo</a></i>
     <a href="#serviceexecutionrolearn" title="ServiceExecutionRoleArn">ServiceExecutionRoleArn</a>: <i>String</i>
-    <a href="#tags" title="Tags">Tags</a>: <i><a href="tags.md">Tags</a></i>
+    <a href="#tags" title="Tags">Tags</a>: <i>
+      - <a href="tag.md">Tag</a></i>
 </pre>
 
 ## Properties
@@ -111,11 +112,11 @@ _Update requires_: [Replacement](https://docs.aws.amazon.com/AWSCloudFormation/l
 
 #### Tags
 
-A key-value pair to associate with a resource.
+A collection of tags associated with a resource
 
 _Required_: No
 
-_Type_: <a href="tags.md">Tags</a>
+_Type_: List of <a href="tag.md">Tag</a>
 
 _Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
 

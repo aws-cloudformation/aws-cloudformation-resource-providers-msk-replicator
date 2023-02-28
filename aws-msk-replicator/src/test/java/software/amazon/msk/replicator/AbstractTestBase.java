@@ -15,12 +15,16 @@ import software.amazon.awssdk.core.ResponseBytes;
 import software.amazon.awssdk.core.ResponseInputStream;
 import software.amazon.awssdk.core.pagination.sync.SdkIterable;
 import software.amazon.awssdk.services.kafka.KafkaClient;
-import software.amazon.awssdk.services.kafka.model.*;
 import software.amazon.awssdk.services.kafka.model.AmazonMskCluster;
 import software.amazon.awssdk.services.kafka.model.ConsumerGroupReplication;
-import software.amazon.awssdk.services.kafka.model.KafkaCluster;
+import software.amazon.awssdk.services.kafka.model.DescribeReplicatorResponse;
 import software.amazon.awssdk.services.kafka.model.KafkaClusterClientVpcConfig;
-import software.amazon.awssdk.services.kafka.model.ReplicationInfo;
+import software.amazon.awssdk.services.kafka.model.KafkaClusterDescription;
+import software.amazon.awssdk.services.kafka.model.KafkaClusterSummary;
+import software.amazon.awssdk.services.kafka.model.ReplicationInfoDescription;
+import software.amazon.awssdk.services.kafka.model.ReplicationInfoSummary;
+import software.amazon.awssdk.services.kafka.model.ReplicatorState;
+import software.amazon.awssdk.services.kafka.model.ReplicatorSummary;
 import software.amazon.awssdk.services.kafka.model.TopicReplication;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
 import software.amazon.cloudformation.proxy.Credentials;
@@ -50,6 +54,25 @@ public class AbstractTestBase {
           put("TEST_TAG2", "TEST_TAG_VALUE2");
       }
   };
+  protected static final Map<String, String> UPDATED_TAGS = new HashMap<String, String>() {
+    {
+      put("TEST_TAG1", "TEST_TAG_VALUE1-UPDATED");
+      put("TEST_TAG3", "TEST_TAG_VALUE3");
+    }
+  };
+  protected static final Map<String, String> REMOVED_TAGS = new HashMap<String, String>() {
+    {
+      put("TEST_TAG1", "TEST_TAG_VALUE1");
+    }
+  };
+
+  protected static final Map<String, String> ADD_TAGS = new HashMap<String, String>() {
+    {
+      put("TEST_TAG1", "TEST_TAG_VALUE1");
+      put("TEST_TAG2", "TEST_TAG_VALUE2");
+      put("TEST_TAG3", "TEST_TAG_VALUE3");
+    }
+  };
 
   protected static final AmazonMskCluster SOURCE_AMAZON_MSK_CLUSTER =
       AmazonMskCluster.builder()
@@ -66,16 +89,6 @@ public class AbstractTestBase {
       .securityGroupIds(SECURITY_GROUP_IDS)
       .subnetIds(SUBNET_IDS)
       .build();
-  protected static final KafkaCluster SOURCE_KAFKA_CLUSTER =
-      KafkaCluster.builder()
-          .amazonMskCluster(SOURCE_AMAZON_MSK_CLUSTER)
-          .vpcConfig(CLUSTER_VPC_CONFIG)
-          .build();
-  protected static final KafkaCluster DESTINATION_KAFKA_CLUSTER =
-      KafkaCluster.builder()
-          .amazonMskCluster(DESTINATION_AMAZON_MSK_CLUSTER)
-          .vpcConfig(CLUSTER_VPC_CONFIG)
-          .build();
   protected static final KafkaClusterSummary SOURCE_KAFKA_CLUSTER_SUMMARY =
       KafkaClusterSummary.builder()
         .amazonMskCluster(SOURCE_AMAZON_MSK_CLUSTER)
@@ -98,7 +111,6 @@ public class AbstractTestBase {
           .kafkaClusterAlias(DESTINATION_KAFKA_CLUSTER_ALIAS)
           .vpcConfig(CLUSTER_VPC_CONFIG)
           .build();
-  protected static final Collection<KafkaCluster> KAFKA_CLUSTERS = Sets.newHashSet(SOURCE_KAFKA_CLUSTER, DESTINATION_KAFKA_CLUSTER);
   protected static final Collection<KafkaClusterSummary> KAFKA_CLUSTER_SUMMARIES = Sets.newHashSet(SOURCE_KAFKA_CLUSTER_SUMMARY, DESTINATION_KAFKA_CLUSTER_SUMMARY);
   protected static final Collection<KafkaClusterDescription> KAFKA_CLUSTER_DESCRIPTIONS = Sets.newHashSet(SOURCE_KAFKA_CLUSTER_DESCRIPTION, DESTINATION_KAFKA_CLUSTER_DESCRIPTION);
   protected static final ConsumerGroupReplication CONSUMER_GROUP_REPLICATION =
@@ -145,24 +157,7 @@ public class AbstractTestBase {
           .consumerGroupReplication(CONSUMER_GROUP_REPLICATION)
           .topicReplication(UPDATED_TOPIC_REPLICATION)
           .build();
-  protected static final ReplicationInfo REPLICATION_INFO =
-      ReplicationInfo.builder()
-        .sourceKafkaClusterArn(SOURCE_MSK_CLUSTER_ARN)
-        .targetKafkaClusterArn(DESTINATION_MSK_CLUSTER_ARN)
-        .targetCompressionType(TARGET_COMPRESSION_TYPE)
-        .consumerGroupReplication(CONSUMER_GROUP_REPLICATION)
-        .topicReplication(TOPIC_REPLICATION)
-        .build();
-  protected static final ReplicationInfo UPDATED_REPLICATION_INFO =
-      ReplicationInfo.builder()
-          .sourceKafkaClusterArn(SOURCE_MSK_CLUSTER_ARN)
-          .targetKafkaClusterArn(DESTINATION_MSK_CLUSTER_ARN)
-          .consumerGroupReplication(CONSUMER_GROUP_REPLICATION)
-          .topicReplication(UPDATED_TOPIC_REPLICATION)
-          .build();
   protected static final Collection<ReplicationInfoSummary> REPLICATION_INFO_SUMMARIES = Sets.newHashSet(REPLICATION_INFO_SUMMARY);
-  protected static final Collection<ReplicationInfo> REPLICATION_INFOS = Sets.newHashSet(REPLICATION_INFO);
-  protected static final Collection<ReplicationInfo> UPDATED_REPLICATION_INFOS = Sets.newHashSet(UPDATED_REPLICATION_INFO);
 
   protected static final software.amazon.msk.replicator.AmazonMskCluster SOURCE_AMAZON_MSK_CLUSTER_MODEL =
       software.amazon.msk.replicator.AmazonMskCluster.builder()
@@ -298,7 +293,7 @@ public class AbstractTestBase {
           .kafkaClusters(KAFKA_CLUSTERS_MODEL)
           .replicationInfoList(REPLICATION_INFOS_MODEL)
           .serviceExecutionRoleArn(SERVICE_EXECUTION_ROLE_ARN)
-          .tags(TAGS)
+          .tags(TagHelper.convertToSet(TAGS))
           .build();
 }
 

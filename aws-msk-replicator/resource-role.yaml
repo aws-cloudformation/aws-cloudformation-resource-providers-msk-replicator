@@ -35,6 +35,7 @@ Resources:
                 - "ec2:DescribeSubnets"
                 - "ec2:DescribeVpcs"
                 - "iam:CreateServiceLinkedRole"
+                - "iam:PassRole"
                 - "kafka:CreateReplicator"
                 - "kafka:CreateReplicatorReference"
                 - "kafka:DeleteReplicator"

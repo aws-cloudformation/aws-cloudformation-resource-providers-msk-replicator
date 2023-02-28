@@ -15,6 +15,8 @@ import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import static software.amazon.msk.replicator.HandlerHelper.getUpdatedReplicationInfos;
 import static software.amazon.msk.replicator.OperationType.UPDATE_REPLICATION_INFO;
@@ -51,9 +53,39 @@ public class UpdateHandler extends BaseHandlerStd {
 
         logger.log(String.format("currentModel: %s", currentModel));
 
-        return ProgressEvent.progress(desiredModel, callbackContext)
-            .then(progress -> makeUpdateReplicatorRequest(proxy, desiredModel, currentModel, proxyClient, callbackContext, clientRequestToken))
-            .then(progress -> new ReadHandler().handleRequest(proxy, request, callbackContext, proxyClient, logger));
+        ProgressEvent<ResourceModel, CallbackContext> progressEvent = ProgressEvent.progress(desiredModel, callbackContext);
+        if (TagHelper.shouldUpdateTags(request.getDesiredResourceState(), request)) {
+            final Map<String, String> previousTags = TagHelper.getPreviouslyAttachedTags(request);
+            final Map<String, String> desiredTags = TagHelper.getNewDesiredTags(desiredModel, request);
+            final Map<String, String> addedTags = TagHelper.generateTagsToAdd(previousTags, desiredTags);
+            final Set<String> removedTags = TagHelper.generateTagsToRemove(previousTags, desiredTags);
+
+            progressEvent =  progressEvent
+                .then(progress -> untagResource(
+                    proxy, proxyClient,
+                    currentModel, request,
+                    callbackContext, progress,
+                    clientRequestToken, removedTags
+                ))
+                .then(progress -> tagResource(
+                    proxy, proxyClient,
+                    currentModel, request,
+                    callbackContext, progress,
+                    clientRequestToken, addedTags
+                ));
+        }
+
+        return progressEvent
+            .then(progress -> makeUpdateReplicatorRequest(
+                proxy, desiredModel,
+                currentModel, proxyClient,
+                callbackContext, clientRequestToken
+            ))
+            .then(progress -> new ReadHandler().handleRequest(
+                proxy, request,
+                callbackContext,
+                proxyClient, logger
+            ));
     }
 
     /**
@@ -139,11 +171,6 @@ public class UpdateHandler extends BaseHandlerStd {
                 .progress();
         }
 
-        logger.log(String.format(
-            "NO-OP request: No updates can be made to the replicator as part of this request: %s , CFN " +
-            "Request: %s",
-            currentModel,
-            desiredModel));
         return ProgressEvent.defaultSuccessHandler(desiredModel);
     }
 
@@ -167,5 +194,68 @@ public class UpdateHandler extends BaseHandlerStd {
             updateReplicationInfoRequest, proxyClient.client()::updateReplicationInfo);
     }
 
+    /**
+     * tagResource during update
+     *
+     * Calls the kafka:TagResource API.
+     */
+    private ProgressEvent<ResourceModel, CallbackContext> tagResource(
+        final AmazonWebServicesClientProxy proxy,
+        final ProxyClient<KafkaClient> serviceClient,
+        final ResourceModel resourceModel,
+        final ResourceHandlerRequest<ResourceModel> handlerRequest,
+        final CallbackContext callbackContext,
+        final ProgressEvent<ResourceModel, CallbackContext> progressEvent,
+        final String clientRequestToken,
+        final Map<String, String> addedTags) {
+
+        if (addedTags.isEmpty()) {
+            return ProgressEvent.progress(resourceModel, progressEvent.getCallbackContext());
+        }
+
+        logger.log(String.format("[UPDATE][IN PROGRESS] Going to add tags for MSK Replicator resource: %s with AccountId: %s",
+                resourceModel.getReplicatorName(), handlerRequest.getAwsAccountId()));
+
+        return proxy.initiate("AWS-MSK-Replicator::TagResource", serviceClient, resourceModel, callbackContext)
+            .translateToServiceRequest(model ->
+                Translator.tagResourceRequest(model, addedTags))
+            .makeServiceCall((tagResourceRequest, _proxyClient) -> _proxyClient.injectCredentialsAndInvokeV2(
+                tagResourceRequest, _proxyClient.client()::tagResource))
+            .handleError((tagResourceRequest, exception, _proxyClient, _resourceModel, _callbackContext) ->
+                handleError(exception, resourceModel,  callbackContext, logger, clientRequestToken))
+            .progress();
+    }
+
+    /**
+     * untagResource during update
+     *
+     * Calls the kafka:UntagResource API.
+     */
+    private ProgressEvent<ResourceModel, CallbackContext> untagResource(
+        final AmazonWebServicesClientProxy proxy,
+        final ProxyClient<KafkaClient> serviceClient,
+        final ResourceModel resourceModel,
+        final ResourceHandlerRequest<ResourceModel> handlerRequest,
+        final CallbackContext callbackContext,
+        final ProgressEvent<ResourceModel, CallbackContext> progressEvent,
+        final String clientRequestToken,
+        final Set<String> removedTags) {
+
+        if (removedTags.isEmpty()) {
+            return ProgressEvent.progress(resourceModel, progressEvent.getCallbackContext());
+        }
+
+        logger.log(String.format("[UPDATE][IN PROGRESS] Going to remove tags for MSK Replicator resource: %s with AccountId: %s",
+            resourceModel.getReplicatorName(), handlerRequest.getAwsAccountId()));
+
+        return proxy.initiate("AWS-MSK-Replicator::UntagResource", serviceClient, resourceModel, callbackContext)
+            .translateToServiceRequest(model ->
+                Translator.untagResourceRequest(model, removedTags))
+            .makeServiceCall((untagResourceRequest, _proxyClient) -> _proxyClient.injectCredentialsAndInvokeV2(
+                untagResourceRequest, _proxyClient.client()::untagResource))
+            .handleError((untagResourceRequest, exception, _proxyClient, _resourceModel, _callbackContext) ->
+                handleError(exception, resourceModel,  callbackContext, logger, clientRequestToken))
+            .progress();
+    }
 
 }

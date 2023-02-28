@@ -30,7 +30,9 @@ public class CreateHandler extends BaseHandlerStd {
         final String clientRequestToken = request.getClientRequestToken();
 
         logger.log( String.format("[Request: %s] Handling create operation, resource model: %s", clientRequestToken,
-                model));
+            model));
+
+        model.setTags(TagHelper.convertToSet(TagHelper.generateTagsForCreate(model, request)));
 
         return ProgressEvent.progress(model, callbackContext)
             .then(progress ->

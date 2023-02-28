@@ -1,6 +1,10 @@
 package software.amazon.msk.replicator;
 
-import java.util.*;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -21,8 +25,10 @@ import software.amazon.awssdk.services.kafka.model.ListReplicatorsRequest;
 import software.amazon.awssdk.services.kafka.model.ListReplicatorsResponse;
 import software.amazon.awssdk.services.kafka.model.ReplicationInfo;
 import software.amazon.awssdk.services.kafka.model.ReplicatorSummary;
+import software.amazon.awssdk.services.kafka.model.TagResourceRequest;
 import software.amazon.awssdk.services.kafka.model.TopicReplication;
 import software.amazon.awssdk.services.kafka.model.TopicReplicationUpdate;
+import software.amazon.awssdk.services.kafka.model.UntagResourceRequest;
 import software.amazon.awssdk.services.kafka.model.UpdateReplicationInfoRequest;
 
 /**
@@ -71,7 +77,7 @@ public class Translator {
           .build())
         .build()).collect(Collectors.toSet()))
       .serviceExecutionRoleArn(model.getServiceExecutionRoleArn())
-      .tags(model.getTags())
+      .tags(TagHelper.convertToMap(model.getTags()))
       .build();
   }
 
@@ -141,7 +147,7 @@ public class Translator {
           .build())
         .collect(Collectors.toSet()))
       .serviceExecutionRoleArn(describeReplicatorResponse.serviceExecutionRoleArn())
-      .tags(describeReplicatorResponse.tags())
+      .tags(TagHelper.convertToSet(describeReplicatorResponse.tags()))
     .build();
   }
 
@@ -244,11 +250,11 @@ public class Translator {
    * @param model resource model
    * @return awsRequest the aws service request to create a resource
    */
-  static AwsRequest tagResourceRequest(final ResourceModel model, final Map<String, String> addedTags) {
-    final AwsRequest awsRequest = null;
-    // TODO: construct a request
-    // e.g. https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-logs/blob/2077c92299aeb9a68ae8f4418b5e932b12a8b186/aws-logs-loggroup/src/main/java/com/aws/logs/loggroup/Translator.java#L39-L43
-    return awsRequest;
+  static TagResourceRequest tagResourceRequest(final ResourceModel model, final Map<String, String> addedTags) {
+    return TagResourceRequest.builder()
+      .resourceArn(model.getReplicatorArn())
+      .tags(addedTags)
+      .build();
   }
 
   /**
@@ -256,10 +262,10 @@ public class Translator {
    * @param model resource model
    * @return awsRequest the aws service request to create a resource
    */
-  static AwsRequest untagResourceRequest(final ResourceModel model, final Set<String> removedTags) {
-    final AwsRequest awsRequest = null;
-    // TODO: construct a request
-    // e.g. https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-logs/blob/2077c92299aeb9a68ae8f4418b5e932b12a8b186/aws-logs-loggroup/src/main/java/com/aws/logs/loggroup/Translator.java#L39-L43
-    return awsRequest;
+  static UntagResourceRequest untagResourceRequest(final ResourceModel model, final Set<String> removedTags) {
+    return UntagResourceRequest.builder()
+      .resourceArn(model.getReplicatorArn())
+      .tagKeys(removedTags)
+      .build();
   }
 }
