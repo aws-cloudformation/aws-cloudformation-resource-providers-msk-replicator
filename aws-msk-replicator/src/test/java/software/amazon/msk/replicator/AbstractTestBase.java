@@ -1,7 +1,9 @@
 package software.amazon.msk.replicator;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -82,8 +84,8 @@ public class AbstractTestBase {
       AmazonMskCluster.builder()
           .mskClusterArn(DESTINATION_MSK_CLUSTER_ARN)
           .build();
-  protected static final Set<String> SUBNET_IDS =  Sets.newHashSet("Subnet-1", "Subnet-2");
-  protected static final Set<String> SECURITY_GROUP_IDS = Sets.newHashSet("SecurityGroup-1");
+  protected static final List<String> SUBNET_IDS =  Arrays.asList("Subnet-1", "Subnet-2");
+  protected static final List<String> SECURITY_GROUP_IDS = Arrays.asList("SecurityGroup-1");
   protected static final KafkaClusterClientVpcConfig CLUSTER_VPC_CONFIG =
       KafkaClusterClientVpcConfig.builder()
       .securityGroupIds(SECURITY_GROUP_IDS)
@@ -217,6 +219,7 @@ public class AbstractTestBase {
       software.amazon.msk.replicator.ReplicationInfo.builder()
           .sourceKafkaClusterArn(SOURCE_MSK_CLUSTER_ARN)
           .targetKafkaClusterArn(DESTINATION_MSK_CLUSTER_ARN)
+          .targetCompressionType(TARGET_COMPRESSION_TYPE)
           .consumerGroupReplication(CONSUMER_GROUP_REPLICATION_MODEL)
           .topicReplication(TOPIC_REPLICATION_MODEL)
           .build();
@@ -224,6 +227,7 @@ public class AbstractTestBase {
       software.amazon.msk.replicator.ReplicationInfo.builder()
           .sourceKafkaClusterArn(SOURCE_MSK_CLUSTER_ARN)
           .targetKafkaClusterArn(DESTINATION_MSK_CLUSTER_ARN)
+          .targetCompressionType(TARGET_COMPRESSION_TYPE)
           .consumerGroupReplication(CONSUMER_GROUP_REPLICATION_MODEL)
           .topicReplication(UPDATED_TOPIC_REPLICATION_MODEL)
           .build();
@@ -231,6 +235,7 @@ public class AbstractTestBase {
       software.amazon.msk.replicator.ReplicationInfo.builder()
           .sourceKafkaClusterArn(SOURCE_MSK_CLUSTER_ARN)
           .targetKafkaClusterArn(DESTINATION_MSK_CLUSTER_ARN)
+          .targetCompressionType(TARGET_COMPRESSION_TYPE)
           .consumerGroupReplication(UPDATED_CONSUMER_GROUP_REPLICATION_MODEL)
           .topicReplication(TOPIC_REPLICATION_MODEL)
           .build();

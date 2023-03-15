@@ -140,14 +140,14 @@ public class UpdateHandlerTest extends AbstractTestBase {
 
         final DescribeReplicatorResponse describeReplicatorResponse = getReplicator(ReplicatorState.RUNNING);
         final DescribeReplicatorResponse describeReplicatorResponseAfter = getReplicator(ReplicatorState.RUNNING).toBuilder()
-                .replicationInfoList(UPDATED_REPLICATION_INFO_DESCRIPTION)
-                .tags(UPDATED_TAGS)
-                .build();
+            .replicationInfoList(UPDATED_REPLICATION_INFO_DESCRIPTION)
+            .tags(UPDATED_TAGS)
+            .build();
 
         final UpdateReplicationInfoResponse updateReplicationInfoResponse = UpdateReplicationInfoResponse.builder()
-                .replicatorArn(REPLICATOR_ARN)
-                .replicatorState(ReplicatorState.UPDATING)
-                .build();
+            .replicatorArn(REPLICATOR_ARN)
+            .replicatorState(ReplicatorState.UPDATING)
+            .build();
 
         final TagResourceResponse tagResourceResponse = TagResourceResponse.builder().build();
         final UntagResourceResponse untagResourceResponse = UntagResourceResponse.builder().build();
@@ -159,7 +159,7 @@ public class UpdateHandlerTest extends AbstractTestBase {
             .thenReturn(updateReplicationInfoResponse);
 
         when(proxyClient.client().describeReplicator(any(DescribeReplicatorRequest.class)))
-                .thenReturn(describeReplicatorResponse, describeReplicatorResponseAfter);
+            .thenReturn(describeReplicatorResponse, describeReplicatorResponseAfter);
 
         final ResourceHandlerRequest<ResourceModel> request =
             ResourceHandlerRequest.<ResourceModel>builder()
@@ -195,7 +195,7 @@ public class UpdateHandlerTest extends AbstractTestBase {
         final DescribeReplicatorResponse describeReplicatorResponse = getReplicator(ReplicatorState.RUNNING);
 
         when(proxyClient.client().describeReplicator(any(DescribeReplicatorRequest.class)))
-                .thenReturn(describeReplicatorResponse);
+            .thenReturn(describeReplicatorResponse);
 
         final ResourceHandlerRequest<ResourceModel> request =
             ResourceHandlerRequest.<ResourceModel>builder()
@@ -205,7 +205,7 @@ public class UpdateHandlerTest extends AbstractTestBase {
                 .build();
 
         final ProgressEvent<ResourceModel, CallbackContext> response =
-                handler.handleRequest(proxy, request, new CallbackContext(), proxyClient, logger);
+            handler.handleRequest(proxy, request, new CallbackContext(), proxyClient, logger);
 
         assertThat(response).isNotNull();
         assertThat(response.getStatus()).isEqualTo(OperationStatus.SUCCESS);
@@ -249,7 +249,7 @@ public class UpdateHandlerTest extends AbstractTestBase {
     @ParameterizedTest
     @MethodSource("KafkaErrorToCfnErrorUpdateOperations")
     public void handleRequest_shouldReturnFailure_UpdateReplicationInfoFailed(
-            Class<KafkaException> kafkaException, HandlerErrorCode cfnError) {
+        Class<KafkaException> kafkaException, HandlerErrorCode cfnError) {
 
         final DescribeReplicatorResponse describeReplicatorResponse = getReplicator(ReplicatorState.RUNNING);
 
@@ -287,10 +287,10 @@ public class UpdateHandlerTest extends AbstractTestBase {
         final DescribeReplicatorResponse describeReplicatorResponse = getReplicator(ReplicatorState.RUNNING);
 
         when(proxyClient.client().describeReplicator(any(DescribeReplicatorRequest.class)))
-                .thenReturn(describeReplicatorResponse);
+            .thenReturn(describeReplicatorResponse);
 
         when(proxyClient.client().untagResource(any(UntagResourceRequest.class)))
-                .thenThrow(kafkaException);
+            .thenThrow(kafkaException);
 
         final ResourceHandlerRequest<ResourceModel> request =
             ResourceHandlerRequest.<ResourceModel>builder()
@@ -384,7 +384,7 @@ public class UpdateHandlerTest extends AbstractTestBase {
                 .build();
 
         assertThrows(CfnNotStabilizedException.class,
-                () -> handler.handleRequest(proxy, request, new CallbackContext(), proxyClient, logger));
+            () -> handler.handleRequest(proxy, request, new CallbackContext(), proxyClient, logger));
 
         verify(proxyClient.client(), atLeast(2)).describeReplicator(any(DescribeReplicatorRequest.class));
         verify(proxyClient.client(), atLeastOnce()).updateReplicationInfo(any(UpdateReplicationInfoRequest.class));

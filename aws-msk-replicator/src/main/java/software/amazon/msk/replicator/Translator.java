@@ -8,10 +8,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-import software.amazon.awssdk.awscore.AwsRequest;
-import software.amazon.awssdk.awscore.AwsResponse;
 import software.amazon.awssdk.services.kafka.model.AmazonMskCluster;
 import software.amazon.awssdk.services.kafka.model.ConsumerGroupReplication;
 import software.amazon.awssdk.services.kafka.model.ConsumerGroupReplicationUpdate;
@@ -49,33 +46,37 @@ public class Translator {
     return CreateReplicatorRequest.builder()
       .replicatorName(model.getReplicatorName())
       .description(model.getDescription())
-      .kafkaClusters(model.getKafkaClusters().stream().map(kafkaCluster -> KafkaCluster.builder()
-        .amazonMskCluster(AmazonMskCluster.builder()
-          .mskClusterArn(kafkaCluster.getAmazonMskCluster().getMskClusterArn())
+      .kafkaClusters(model.getKafkaClusters().stream().map(
+        kafkaCluster -> KafkaCluster.builder()
+          .amazonMskCluster(AmazonMskCluster.builder()
+            .mskClusterArn(kafkaCluster.getAmazonMskCluster().getMskClusterArn())
+            .build())
+          .vpcConfig(KafkaClusterClientVpcConfig.builder()
+            .securityGroupIds(kafkaCluster.getVpcConfig().getSecurityGroupIds())
+            .subnetIds(kafkaCluster.getVpcConfig().getSubnetIds())
+            .build())
           .build())
-        .vpcConfig(KafkaClusterClientVpcConfig.builder()
-          .securityGroupIds(kafkaCluster.getVpcConfig().getSecurityGroupIds())
-          .subnetIds(kafkaCluster.getVpcConfig().getSubnetIds())
+        .collect(Collectors.toList()))
+      .replicationInfoList(model.getReplicationInfoList().stream().map(
+        replicationInfo -> ReplicationInfo.builder()
+          .sourceKafkaClusterArn(replicationInfo.getSourceKafkaClusterArn())
+          .targetKafkaClusterArn(replicationInfo.getTargetKafkaClusterArn())
+          .targetCompressionType(replicationInfo.getTargetCompressionType())
+          .consumerGroupReplication(ConsumerGroupReplication.builder()
+            .consumerGroupsToExclude(replicationInfo.getConsumerGroupReplication().getConsumerGroupsToExclude())
+            .consumerGroupsToReplicate(replicationInfo.getConsumerGroupReplication().getConsumerGroupsToReplicate())
+            .detectAndCopyNewConsumerGroups(replicationInfo.getConsumerGroupReplication().getDetectAndCopyNewConsumerGroups())
+            .synchroniseConsumerGroupOffsets(replicationInfo.getConsumerGroupReplication().getSynchroniseConsumerGroupOffsets())
+            .build())
+          .topicReplication(TopicReplication.builder()
+            .topicsToExclude(replicationInfo.getTopicReplication().getTopicsToExclude())
+            .topicsToReplicate(replicationInfo.getTopicReplication().getTopicsToReplicate())
+            .copyAccessControlListsForTopics(replicationInfo.getTopicReplication().getCopyAccessControlListsForTopics())
+            .copyTopicConfigurations(replicationInfo.getTopicReplication().getCopyTopicConfigurations())
+            .detectAndCopyNewTopics(replicationInfo.getTopicReplication().getDetectAndCopyNewTopics())
+            .build())
           .build())
-        .build()).collect(Collectors.toSet()))
-      .replicationInfoList(model.getReplicationInfoList().stream().map(replicationInfo -> ReplicationInfo.builder()
-        .sourceKafkaClusterArn(replicationInfo.getSourceKafkaClusterArn())
-        .targetKafkaClusterArn(replicationInfo.getTargetKafkaClusterArn())
-        .targetCompressionType(replicationInfo.getTargetCompressionType())
-        .consumerGroupReplication(ConsumerGroupReplication.builder()
-          .consumerGroupsToExclude(replicationInfo.getConsumerGroupReplication().getConsumerGroupsToExclude())
-          .consumerGroupsToReplicate(replicationInfo.getConsumerGroupReplication().getConsumerGroupsToReplicate())
-          .detectAndCopyNewConsumerGroups(replicationInfo.getConsumerGroupReplication().getDetectAndCopyNewConsumerGroups())
-          .synchroniseConsumerGroupOffsets(replicationInfo.getConsumerGroupReplication().getSynchroniseConsumerGroupOffsets())
-          .build())
-        .topicReplication(TopicReplication.builder()
-          .topicsToExclude(replicationInfo.getTopicReplication().getTopicsToExclude())
-          .topicsToReplicate(replicationInfo.getTopicReplication().getTopicsToReplicate())
-          .copyAccessControlListsForTopics(replicationInfo.getTopicReplication().getCopyAccessControlListsForTopics())
-          .copyTopicConfigurations(replicationInfo.getTopicReplication().getCopyTopicConfigurations())
-          .detectAndCopyNewTopics(replicationInfo.getTopicReplication().getDetectAndCopyNewTopics())
-          .build())
-        .build()).collect(Collectors.toSet()))
+        .collect(Collectors.toList()))
       .serviceExecutionRoleArn(model.getServiceExecutionRoleArn())
       .tags(TagHelper.convertToMap(model.getTags()))
       .build();
@@ -90,7 +91,6 @@ public class Translator {
     return DescribeReplicatorRequest.builder()
       .replicatorArn(model.getReplicatorArn())
       .build();
-
   }
 
   /**
@@ -108,7 +108,7 @@ public class Translator {
           kafkaCluster -> kafkaCluster.kafkaClusterAlias(),
           kafkaCluster -> kafkaCluster.amazonMskCluster().mskClusterArn()
         )
-    );
+      );
 
     return ResourceModel.builder()
       .replicatorArn(describeReplicatorResponse.replicatorArn())
@@ -116,21 +116,21 @@ public class Translator {
       .currentVersion(describeReplicatorResponse.currentVersion())
       .description(describeReplicatorResponse.replicatorDescription())
       .kafkaClusters(describeReplicatorResponse.kafkaClusters().stream().map(
-        kafkaCluster ->
-          software.amazon.msk.replicator.KafkaCluster.builder()
-            .amazonMskCluster(software.amazon.msk.replicator.AmazonMskCluster.builder()
-              .mskClusterArn(kafkaCluster.amazonMskCluster().mskClusterArn())
-              .build())
-            .vpcConfig(software.amazon.msk.replicator.KafkaClusterClientVpcConfig.builder()
-              .securityGroupIds(Sets.newHashSet(kafkaCluster.vpcConfig().securityGroupIds()))
-              .subnetIds(Sets.newHashSet(kafkaCluster.vpcConfig().subnetIds()))
-              .build())
+        kafkaCluster -> software.amazon.msk.replicator.KafkaCluster.builder()
+          .amazonMskCluster(software.amazon.msk.replicator.AmazonMskCluster.builder()
+            .mskClusterArn(kafkaCluster.amazonMskCluster().mskClusterArn())
             .build())
+          .vpcConfig(software.amazon.msk.replicator.KafkaClusterClientVpcConfig.builder()
+            .securityGroupIds(kafkaCluster.vpcConfig().securityGroupIds())
+            .subnetIds(kafkaCluster.vpcConfig().subnetIds())
+            .build())
+          .build())
         .collect(Collectors.toSet()))
       .replicationInfoList(describeReplicatorResponse.replicationInfoList().stream().map(
         replicationInfo -> software.amazon.msk.replicator.ReplicationInfo.builder()
           .sourceKafkaClusterArn(kafkaClusterAliasToArnMap.get(replicationInfo.sourceKafkaClusterAlias()))
           .targetKafkaClusterArn(kafkaClusterAliasToArnMap.get(replicationInfo.targetKafkaClusterAlias()))
+          .targetCompressionType(replicationInfo.targetCompressionTypeAsString())
           .topicReplication(software.amazon.msk.replicator.TopicReplication.builder()
             .topicsToReplicate(Sets.newHashSet(replicationInfo.topicReplication().topicsToReplicate()))
             .topicsToExclude(Sets.newHashSet(replicationInfo.topicReplication().topicsToExclude()))
@@ -148,7 +148,7 @@ public class Translator {
         .collect(Collectors.toSet()))
       .serviceExecutionRoleArn(describeReplicatorResponse.serviceExecutionRoleArn())
       .tags(TagHelper.convertToSet(describeReplicatorResponse.tags()))
-    .build();
+      .build();
   }
 
   /**
@@ -191,17 +191,6 @@ public class Translator {
   }
 
   /**
-   * Request to update some other properties that could not be provisioned through first update request
-   * @param model resource model
-   * @return awsRequest the aws service request to modify a resource
-   */
-  static AwsRequest translateToSecondUpdateRequest(final ResourceModel model) {
-    final AwsRequest awsRequest = null;
-    // TODO: construct a request
-    return awsRequest;
-  }
-
-  /**
    * Request to list resources
    * @param nextToken token passed to the aws service list resources request
    * @return awsRequest the aws service request to list resources within aws account
@@ -225,24 +214,10 @@ public class Translator {
       .collect(Collectors.toList());
   }
 
-  /**
-   * Translates resource objects from sdk into a resource model (primary identifier only)
-   * @param awsResponse the aws service describe resource response
-   * @return list of resource models
-   */
-  static List<ResourceModel> translateFromListRequest(final AwsResponse awsResponse) {
-    // e.g. https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-logs/blob/2077c92299aeb9a68ae8f4418b5e932b12a8b186/aws-logs-loggroup/src/main/java/com/aws/logs/loggroup/Translator.java#L75-L82
-    return streamOfOrEmpty(Lists.newArrayList())
-        .map(resource -> ResourceModel.builder()
-            // include only primary identifier
-            .build())
-        .collect(Collectors.toList());
-  }
-
   private static <T> Stream<T> streamOfOrEmpty(final Collection<T> collection) {
     return Optional.ofNullable(collection)
-        .map(Collection::stream)
-        .orElseGet(Stream::empty);
+      .map(Collection::stream)
+      .orElseGet(Stream::empty);
   }
 
   /**
