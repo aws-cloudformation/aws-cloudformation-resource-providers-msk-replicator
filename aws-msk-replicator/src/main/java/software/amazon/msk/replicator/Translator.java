@@ -162,16 +162,19 @@ public class Translator {
 
   /**
    * Request to update properties of a previously created resource
-   * @param model resource model
+   * @param desiredModel desired resource model
+   * @param currentModel current resource model
+
    * @param desiredReplicationInfo changed replication info
    * @return UpdateReplicationInfoRequest the aws service request to modify a resource
    */
   static UpdateReplicationInfoRequest translateToUpdateReplicationInfoRequest(
-    final ResourceModel model,
+    final ResourceModel desiredModel,
+    final ResourceModel currentModel,
     software.amazon.msk.replicator.ReplicationInfo desiredReplicationInfo) {
     return UpdateReplicationInfoRequest.builder()
-      .currentVersion(model.getCurrentVersion())
-      .replicatorArn(model.getReplicatorArn())
+      .currentVersion(currentModel.getCurrentVersion())
+      .replicatorArn(desiredModel.getReplicatorArn())
       .sourceKafkaClusterArn(desiredReplicationInfo.getSourceKafkaClusterArn())
       .targetKafkaClusterArn(desiredReplicationInfo.getTargetKafkaClusterArn())
       .topicReplication(TopicReplicationUpdate.builder()

@@ -309,6 +309,7 @@
                 "kafka:GetBootstrapBrokers",
                 "kafka:CreateReplicatorReference",
                 "kafka:TagResource",
+                "kafka:ListTagsForResource",
                 "iam:CreateServiceLinkedRole",
                 "iam:PassRole"
             ]
