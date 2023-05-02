@@ -162,7 +162,7 @@ public class UpdateHandler extends BaseHandlerStd {
             ReplicationInfo desiredReplicationInfo = desiredUpdatedReplicationInfo.get(0);
             return proxy
                 .initiate("AWS-MSK-Replicator::UpdateReplicationInfo", proxyClient, desiredModel, callbackContext)
-                .translateToServiceRequest(_resourceModel -> Translator.translateToUpdateReplicationInfoRequest(desiredModel, desiredReplicationInfo))
+                .translateToServiceRequest(_resourceModel -> Translator.translateToUpdateReplicationInfoRequest(desiredModel, currentModel, desiredReplicationInfo))
                 .backoffDelay(STABILIZATION_DELAY_UPDATE)
                 .makeServiceCall((updateReplicationInfoRequest, _proxyClient) -> performUpdateReplicationInfoOperation(updateReplicationInfoRequest, _proxyClient, clientRequestToken))
                 .stabilize((updateReplicationInfoRequest, updateReplicationInfoResponse, _proxyClient, _resourceModel, _callbackContext) -> stabilizedOnUpdate(updateReplicationInfoResponse, _proxyClient, desiredModel, clientRequestToken))

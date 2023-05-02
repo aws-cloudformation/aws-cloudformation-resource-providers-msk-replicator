@@ -43,6 +43,7 @@ Resources:
                 - "kafka:DescribeReplicator"
                 - "kafka:GetBootstrapBrokers"
                 - "kafka:ListReplicators"
+                - "kafka:ListTagsForResource"
                 - "kafka:TagResource"
                 - "kafka:UntagResource"
                 - "kafka:UpdateReplicationInfo"
