@@ -1,6 +1,7 @@
 package software.amazon.msk.replicator;
 
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -8,6 +9,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import com.amazonaws.util.CollectionUtils;
 import com.google.common.collect.Sets;
 import software.amazon.awssdk.services.kafka.model.AmazonMskCluster;
 import software.amazon.awssdk.services.kafka.model.ConsumerGroupReplication;
@@ -42,7 +44,8 @@ public class Translator {
    * @param model resource model
    * @return awsRequest the aws service request to create a resource
    */
-  static CreateReplicatorRequest translateToCreateRequest(final ResourceModel model) {
+  static CreateReplicatorRequest translateToCreateRequest(final ResourceModel model,
+      final Map<String, String> tagsForCreate) {
     return CreateReplicatorRequest.builder()
       .replicatorName(model.getReplicatorName())
       .description(model.getDescription())
@@ -78,7 +81,7 @@ public class Translator {
           .build())
         .collect(Collectors.toList()))
       .serviceExecutionRoleArn(model.getServiceExecutionRoleArn())
-      .tags(TagHelper.convertToMap(model.getTags()))
+      .tags(tagsForCreate)
       .build();
   }
 
@@ -121,8 +124,8 @@ public class Translator {
             .mskClusterArn(kafkaCluster.amazonMskCluster().mskClusterArn())
             .build())
           .vpcConfig(software.amazon.msk.replicator.KafkaClusterClientVpcConfig.builder()
-            .securityGroupIds(kafkaCluster.vpcConfig().securityGroupIds())
-            .subnetIds(kafkaCluster.vpcConfig().subnetIds())
+            .securityGroupIds(Sets.newHashSet(kafkaCluster.vpcConfig().securityGroupIds()))
+            .subnetIds(Sets.newHashSet(kafkaCluster.vpcConfig().subnetIds()))
             .build())
           .build())
         .collect(Collectors.toSet()))

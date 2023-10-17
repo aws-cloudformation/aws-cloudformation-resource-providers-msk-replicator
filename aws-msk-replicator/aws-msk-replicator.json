@@ -20,7 +20,8 @@
             "description": "The name of the replicator.",
             "type": "string",
             "minLength": 1,
-            "maxLength": 128
+            "maxLength": 128,
+            "pattern": "^[0-9A-Za-z][0-9A-Za-z-]{0,}$"
         },
         "CurrentVersion": {
             "description": "The current version of the MSK replicator.",
@@ -100,7 +101,8 @@
                     "minItems": 1,
                     "maxItems": 100,
                     "items": {
-                        "type": "string"
+                        "type": "string",
+                        "maxLength": 249
                     }
                 },
                 "TopicsToExclude": {
@@ -111,7 +113,8 @@
                     "minItems": 1,
                     "maxItems": 100,
                     "items": {
-                        "type": "string"
+                        "type": "string",
+                        "maxLength": 249
                     }
                 },
                 "CopyTopicConfigurations": {
@@ -141,10 +144,11 @@
                     "type": "array",
                     "uniqueItems": true,
                     "insertionOrder": false,
-                    "minItems": 1,
+                    "minItems": 0,
                     "maxItems": 100,
                     "items": {
-                        "type": "string"
+                        "type": "string",
+                        "maxLength": 256
                     }
                 },
                 "ConsumerGroupsToExclude": {
@@ -155,7 +159,8 @@
                     "minItems": 1,
                     "maxItems": 100,
                     "items": {
-                        "type": "string"
+                        "type": "string",
+                        "maxLength": 256
                     }
                 },
                 "SynchroniseConsumerGroupOffsets": {
@@ -238,6 +243,7 @@
                     "description": "The AWS security groups to associate with the elastic network interfaces in order to specify what the replicator has access to. If a security group is not specified, the default security group associated with the VPC is used.",
                     "type": "array",
                     "uniqueItems": true,
+                    "insertionOrder": false,
                     "minItems": 1,
                     "maxItems": 16,
                     "items": {
@@ -248,6 +254,7 @@
                     "description": "The list of subnets to connect to in the virtual private cloud (VPC). AWS creates elastic network interfaces inside these subnets.",
                     "type": "array",
                     "uniqueItems": true,
+                    "insertionOrder": false,
                     "minItems": 2,
                     "maxItems": 3,
                     "items": {
@@ -288,6 +295,11 @@
     "primaryIdentifier": [
         "/properties/ReplicatorArn"
     ],
+    "additionalIdentifiers": [
+        [
+            "/properties/ReplicatorName"
+        ]
+    ],
     "readOnlyProperties": [
         "/properties/ReplicatorArn"
     ],
@@ -300,35 +312,41 @@
     "handlers": {
         "create": {
             "permissions": [
-                "kafka:CreateReplicator",
-                "ec2:DescribeVpcs",
-                "ec2:DescribeSubnets",
-                "ec2:DescribeSecurityGroups",
                 "ec2:CreateNetworkInterface",
-                "kafka:DescribeClusterV2",
-                "kafka:GetBootstrapBrokers",
-                "kafka:CreateReplicatorReference",
-                "kafka:TagResource",
-                "kafka:ListTagsForResource",
+                "ec2:DescribeSecurityGroups",
+                "ec2:DescribeSubnets",
+                "ec2:DescribeVpcs",
                 "iam:CreateServiceLinkedRole",
-                "iam:PassRole"
+                "iam:PassRole",
+                "kafka:CreateReplicator",
+                "kafka:CreateReplicatorReference",
+                "kafka:DescribeClusterV2",
+                "kafka:DescribeReplicator",
+                "kafka:GetBootstrapBrokers",
+                "kafka:ListTagsForResource",
+                "kafka:TagResource"
             ]
         },
         "read": {
             "permissions": [
-                "kafka:DescribeReplicator"
+                "kafka:DescribeReplicator",
+                "kafka:ListTagsForResource"
             ]
         },
         "update": {
             "permissions": [
-                "kafka:UpdateReplicationInfo",
+                "kafka:DescribeReplicator",
+                "kafka:ListTagsForResource",
                 "kafka:TagResource",
-                "kafka:UntagResource"
+                "kafka:UntagResource",
+                "kafka:UpdateReplicationInfo"
             ]
         },
         "delete": {
             "permissions": [
                 "kafka:DeleteReplicator",
+                "kafka:DescribeReplicator",
+                "kafka:ListTagsForResource",
                 "kafka:UntagResource"
             ]
         },

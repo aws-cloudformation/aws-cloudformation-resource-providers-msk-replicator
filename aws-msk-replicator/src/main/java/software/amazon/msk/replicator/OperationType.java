@@ -12,12 +12,8 @@ public enum OperationType {
             if (getUpdatedReplicationInfos(desiredModel, currentModel).size() > 0){
                 isReplicationInfoUpdated = true;
                 logger.log(String.format(
-                    "Found request to update replication info, replicator: %s, current " +
-                    "ReplicationInfoList: %s, to target " +
-                    "ReplicationInfoList: %s.",
-                    currentModel.getReplicatorArn(),
-                    currentModel.getReplicationInfoList(),
-                    desiredModel.getReplicationInfoList())
+                    "Found request to update replication info for replicator: %s",
+                    currentModel.getReplicatorArn())
                 );
             }
             return isReplicationInfoUpdated;

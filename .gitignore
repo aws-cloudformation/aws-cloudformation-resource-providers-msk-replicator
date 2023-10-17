@@ -1,0 +1,12 @@
+.gradle/
+build
+buildSrc/.gradle/
+buildSrc/build/
+.idea/
+rpdk.log*
+.DS_Store
+.classpath
+.factorypath
+.project
+.settings/
+.vscode/

@@ -5,9 +5,9 @@ import software.amazon.cloudformation.LambdaWrapper;
 
 public class ClientBuilder {
 
-  public static KafkaClient getClient(){
+  public static KafkaClient getClient() {
     return KafkaClient.builder()
-      .httpClient(LambdaWrapper.HTTP_CLIENT)
-      .build();
+        .httpClient(LambdaWrapper.HTTP_CLIENT)
+        .build();
   }
 }
