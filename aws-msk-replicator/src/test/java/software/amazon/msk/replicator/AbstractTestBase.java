@@ -171,8 +171,8 @@ public class AbstractTestBase {
           .build();
   protected static final software.amazon.msk.replicator.KafkaClusterClientVpcConfig CLUSTER_VPC_CONFIG_MODEL =
       software.amazon.msk.replicator.KafkaClusterClientVpcConfig.builder()
-          .securityGroupIds(SECURITY_GROUP_IDS)
-          .subnetIds(SUBNET_IDS)
+          .securityGroupIds(Sets.newHashSet(SECURITY_GROUP_IDS))
+          .subnetIds(Sets.newHashSet(SUBNET_IDS))
           .build();
   protected static final software.amazon.msk.replicator.KafkaCluster SOURCE_KAFKA_CLUSTER_MODEL =
       software.amazon.msk.replicator.KafkaCluster.builder()

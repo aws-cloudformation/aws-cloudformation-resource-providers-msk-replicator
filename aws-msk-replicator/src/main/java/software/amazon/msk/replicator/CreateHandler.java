@@ -29,15 +29,11 @@ public class CreateHandler extends BaseHandlerStd {
         final ResourceModel model = request.getDesiredResourceState();
         final String clientRequestToken = request.getClientRequestToken();
 
-        logger.log( String.format("[Request: %s] Handling create operation, resource model: %s", clientRequestToken,
-            model));
-
-        model.setTags(TagHelper.convertToSet(TagHelper.generateTagsForCreate(model, request)));
-
         return ProgressEvent.progress(model, callbackContext)
             .then(progress ->
                 proxy.initiate("AWS-MSK-Replicator::Create", proxyClient, model, callbackContext)
-                    .translateToServiceRequest(Translator::translateToCreateRequest)
+                    .translateToServiceRequest(_resourceModel -> Translator.translateToCreateRequest(_resourceModel,
+                            TagHelper.generateTagsForCreate(request)))
                     .backoffDelay(STABILIZATION_DELAY_CREATE)
                     .makeServiceCall(this::createResource)
                     .stabilize(this::stabilizedOnCreate)
@@ -58,7 +54,7 @@ public class CreateHandler extends BaseHandlerStd {
         final ProxyClient<KafkaClient> proxyClient) {
         try {
             return proxyClient
-                .injectCredentialsAndInvokeV2(createReplicatorRequest,proxyClient.client()::createReplicator);
+                .injectCredentialsAndInvokeV2(createReplicatorRequest, proxyClient.client()::createReplicator);
         } catch (final ConflictException e) {
             logger.log(String.format("Replicator with name %s already exists: %s ", createReplicatorRequest.replicatorName(),
                 e.getMessage()));

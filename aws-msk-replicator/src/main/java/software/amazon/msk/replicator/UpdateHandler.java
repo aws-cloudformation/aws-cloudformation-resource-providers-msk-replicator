@@ -35,14 +35,10 @@ public class UpdateHandler extends BaseHandlerStd {
 
         final ResourceModel desiredModel = request.getDesiredResourceState();
 
-        logger.log(String.format("desiredModel: %s", desiredModel));
-
         final String clientRequestToken = request.getClientRequestToken();
 
         ProgressEvent<ResourceModel, CallbackContext> readResponse =
             describeReplicator(proxy, proxyClient, desiredModel, callbackContext, clientRequestToken, logger);
-
-        logger.log(String.format("readResponse: %s", readResponse));
 
         if (readResponse.getStatus() == OperationStatus.FAILED) {
             return ProgressEvent.failed(readResponse.getResourceModel(), readResponse.getCallbackContext(),
@@ -51,12 +47,10 @@ public class UpdateHandler extends BaseHandlerStd {
 
         final ResourceModel currentModel = readResponse.getResourceModel();
 
-        logger.log(String.format("currentModel: %s", currentModel));
-
         ProgressEvent<ResourceModel, CallbackContext> progressEvent = ProgressEvent.progress(desiredModel, callbackContext);
-        if (TagHelper.shouldUpdateTags(request.getDesiredResourceState(), request)) {
+        if (TagHelper.shouldUpdateTags(request)) {
             final Map<String, String> previousTags = TagHelper.getPreviouslyAttachedTags(request);
-            final Map<String, String> desiredTags = TagHelper.getNewDesiredTags(desiredModel, request);
+            final Map<String, String> desiredTags = TagHelper.getNewDesiredTags(request);
             final Map<String, String> addedTags = TagHelper.generateTagsToAdd(previousTags, desiredTags);
             final Set<String> removedTags = TagHelper.generateTagsToRemove(previousTags, desiredTags);
 

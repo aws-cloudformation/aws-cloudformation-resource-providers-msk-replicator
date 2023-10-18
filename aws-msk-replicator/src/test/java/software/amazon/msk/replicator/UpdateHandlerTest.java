@@ -362,7 +362,7 @@ public class UpdateHandlerTest extends AbstractTestBase {
     public void handleStabilize_shouldReturnFailure_InvalidReplicatorStatus() {
 
         final DescribeReplicatorResponse describeReplicatorResponse = getReplicator(ReplicatorState.RUNNING);
-        final DescribeReplicatorResponse describeReplicatorResponseDegraded = getReplicator(ReplicatorState.DEGRADED);
+        final DescribeReplicatorResponse describeReplicatorResponseFailed = getReplicator(ReplicatorState.FAILED);
 
         final UpdateReplicationInfoResponse updateReplicationInfoResponse = UpdateReplicationInfoResponse.builder()
             .replicatorArn(REPLICATOR_ARN)
@@ -370,7 +370,7 @@ public class UpdateHandlerTest extends AbstractTestBase {
             .build();
 
         when(proxyClient.client().describeReplicator(any(DescribeReplicatorRequest.class)))
-            .thenReturn(describeReplicatorResponse, describeReplicatorResponseDegraded);
+            .thenReturn(describeReplicatorResponse, describeReplicatorResponseFailed);
 
         when(proxyClient.client().updateReplicationInfo(any(UpdateReplicationInfoRequest.class)))
             .thenReturn(updateReplicationInfoResponse);

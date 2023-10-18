@@ -78,7 +78,6 @@ public class DeleteHandlerTest extends AbstractTestBase {
             arguments(AwsServiceException.class, HandlerErrorCode.GeneralServiceException));
     }
 
-
     @BeforeEach
     public void setup() {
         proxy = new AmazonWebServicesClientProxy(logger, MOCK_CREDENTIALS, () -> Duration.ofSeconds(600).toMillis());
@@ -94,8 +93,11 @@ public class DeleteHandlerTest extends AbstractTestBase {
         when(proxyClient.client().deleteReplicator(any(DeleteReplicatorRequest.class)))
             .thenReturn(deleteReplicatorResponse);
 
-        final DescribeReplicatorResponse deletingStateDescribeReplicatorResponse = getReplicator(ReplicatorState.DELETING);
+        final DescribeReplicatorResponse runningDescribeReplicatorResponse = getReplicator(ReplicatorState.RUNNING);
+        final DescribeReplicatorResponse deletingStateDescribeReplicatorResponse =
+            getReplicator(ReplicatorState.DELETING);
         when(proxyClient.client().describeReplicator(any(DescribeReplicatorRequest.class)))
+            .thenReturn(runningDescribeReplicatorResponse)
             .thenReturn(deletingStateDescribeReplicatorResponse)
             .thenThrow(NotFoundException.class);
 
@@ -119,7 +121,7 @@ public class DeleteHandlerTest extends AbstractTestBase {
         assertThat(response.getErrorCode()).isNull();
 
         verify(proxyClient.client()).deleteReplicator(any(DeleteReplicatorRequest.class));
-        verify(proxyClient.client(), times(2)).describeReplicator(any(DescribeReplicatorRequest.class));
+        verify(proxyClient.client(), times(3)).describeReplicator(any(DescribeReplicatorRequest.class));
     }
 
     @Test
@@ -153,7 +155,7 @@ public class DeleteHandlerTest extends AbstractTestBase {
         assertThat(response.getErrorCode()).isNull();
 
         verify(proxyClient.client(), times(1)).deleteReplicator(any(DeleteReplicatorRequest.class));
-        verify(proxyClient.client(), times(1)).describeReplicator(any(DescribeReplicatorRequest.class));
+        verify(proxyClient.client(), times(2)).describeReplicator(any(DescribeReplicatorRequest.class));
     }
 
     @ParameterizedTest
@@ -163,6 +165,10 @@ public class DeleteHandlerTest extends AbstractTestBase {
         when(proxyClient.client().deleteReplicator(any(DeleteReplicatorRequest.class)))
             .thenThrow(kafkaException);
 
+        final DescribeReplicatorResponse runningDescribeReplicatorResponse = getReplicator(ReplicatorState.RUNNING);
+        when(proxyClient.client().describeReplicator(any(DescribeReplicatorRequest.class)))
+            .thenReturn(runningDescribeReplicatorResponse);
+
         final ResourceModel model = ResourceModel.builder().build();
 
         // When
@@ -171,7 +177,7 @@ public class DeleteHandlerTest extends AbstractTestBase {
                 .clientRequestToken(CLIENT_REQUEST_TOKEN).build();
 
         final ProgressEvent<ResourceModel, CallbackContext> response =
-                handler.handleRequest(proxy, request, new CallbackContext(), proxyClient, logger);
+            handler.handleRequest(proxy, request, new CallbackContext(), proxyClient, logger);
 
         // Then
         assertThat(response).isNotNull();
@@ -181,6 +187,7 @@ public class DeleteHandlerTest extends AbstractTestBase {
         assertThat(response.getErrorCode()).isEqualTo(cfnError);
 
         verify(proxyClient.client()).deleteReplicator(any(DeleteReplicatorRequest.class));
+        verify(proxyClient.client()).describeReplicator(any(DescribeReplicatorRequest.class));
     }
 
     @Test
@@ -190,9 +197,11 @@ public class DeleteHandlerTest extends AbstractTestBase {
         when(proxyClient.client().deleteReplicator(any(DeleteReplicatorRequest.class)))
             .thenReturn(deleteReplicatorResponse);
 
-        DescribeReplicatorResponse describeReplicatorResponse = getReplicator(ReplicatorState.FAILED);
+        final DescribeReplicatorResponse runningDescribeReplicatorResponse = getReplicator(ReplicatorState.RUNNING);
+        final DescribeReplicatorResponse failedDescribeReplicatorResponse = getReplicator(ReplicatorState.FAILED);
         when(proxyClient.client().describeReplicator(any(DescribeReplicatorRequest.class)))
-                .thenReturn(describeReplicatorResponse);
+            .thenReturn(runningDescribeReplicatorResponse)
+            .thenReturn(failedDescribeReplicatorResponse);
 
         final ResourceModel model = ResourceModel.builder().replicatorName(REPLICATOR_NAME).build();
 
@@ -205,7 +214,7 @@ public class DeleteHandlerTest extends AbstractTestBase {
             () -> handler.handleRequest(proxy, request, new CallbackContext(), proxyClient, logger));
 
         verify(proxyClient.client()).deleteReplicator(any(DeleteReplicatorRequest.class));
-        verify(proxyClient.client()).describeReplicator(any(DescribeReplicatorRequest.class));
+        verify(proxyClient.client(), times(2)).describeReplicator(any(DescribeReplicatorRequest.class));
     }
 
     @Test
@@ -215,6 +224,7 @@ public class DeleteHandlerTest extends AbstractTestBase {
             .thenReturn(DeleteReplicatorResponse.builder().build());
 
         when(proxyClient.client().describeReplicator(any(DescribeReplicatorRequest.class)))
+            .thenReturn(getReplicator(ReplicatorState.RUNNING))
             .thenThrow(BadRequestException.class);
 
         final ResourceModel model = ResourceModel.builder().replicatorName(REPLICATOR_NAME).build();
@@ -228,7 +238,7 @@ public class DeleteHandlerTest extends AbstractTestBase {
             () -> handler.handleRequest(proxy, request, new CallbackContext(), proxyClient, logger));
 
         verify(proxyClient.client()).deleteReplicator(any(DeleteReplicatorRequest.class));
-        verify(proxyClient.client()).describeReplicator(any(DescribeReplicatorRequest.class));
+        verify(proxyClient.client(), times(2)).describeReplicator(any(DescribeReplicatorRequest.class));
     }
 
     @Test
@@ -236,6 +246,8 @@ public class DeleteHandlerTest extends AbstractTestBase {
         // Given
         when(proxyClient.client().deleteReplicator(any(DeleteReplicatorRequest.class)))
             .thenThrow(NotFoundException.class);
+        when(proxyClient.client().describeReplicator(any(DescribeReplicatorRequest.class)))
+            .thenReturn(getReplicator(ReplicatorState.RUNNING));
 
         // When & Then
         final ResourceHandlerRequest<ResourceModel> request =
@@ -257,6 +269,8 @@ public class DeleteHandlerTest extends AbstractTestBase {
         when(proxyClient.client().deleteReplicator(any(DeleteReplicatorRequest.class)))
             .thenThrow(BadRequestException.builder().invalidParameter(MSK_API_PARAM_NAME_REPLICATOR_ARN)
                 .message(INVALID_PARAMETER_EXCEPTION).build());
+        when(proxyClient.client().describeReplicator(any(DescribeReplicatorRequest.class)))
+            .thenReturn(getReplicator(ReplicatorState.RUNNING));
 
         // When & Then
         final ResourceHandlerRequest<ResourceModel> request =
@@ -277,6 +291,8 @@ public class DeleteHandlerTest extends AbstractTestBase {
         // Given
         when(proxyClient.client().deleteReplicator(any(DeleteReplicatorRequest.class)))
             .thenThrow(BadRequestException.builder().invalidParameter(MSK_API_PARAM_NAME_REPLICATOR_ARN).build());
+        when(proxyClient.client().describeReplicator(any(DescribeReplicatorRequest.class)))
+            .thenReturn(getReplicator(ReplicatorState.RUNNING));
 
         // When & Then
         final ResourceHandlerRequest<ResourceModel> request =
@@ -295,13 +311,14 @@ public class DeleteHandlerTest extends AbstractTestBase {
     @ParameterizedTest
     @MethodSource("stabilizeKafkaErrorToCfnError")
     public void handleStabilize_Exception(
-            Class<KafkaException> kafkaException, HandlerErrorCode cfnError) {
+        Class<KafkaException> kafkaException, HandlerErrorCode cfnError) {
 
         final DeleteReplicatorResponse deleteReplicatorResponse = DeleteReplicatorResponse.builder().build();
         when(proxyClient.client().deleteReplicator(any(DeleteReplicatorRequest.class)))
             .thenReturn(deleteReplicatorResponse);
 
         when(proxyClient.client().describeReplicator(any(DescribeReplicatorRequest.class)))
+            .thenReturn(getReplicator(ReplicatorState.RUNNING))
             .thenThrow(kafkaException);
 
         final ResourceModel model = ResourceModel.builder().build();
@@ -320,6 +337,6 @@ public class DeleteHandlerTest extends AbstractTestBase {
         assertThat(response.getErrorCode()).isEqualTo(cfnError);
 
         verify(proxyClient.client()).deleteReplicator(any(DeleteReplicatorRequest.class));
-        verify(proxyClient.client()).describeReplicator(any(DescribeReplicatorRequest.class));
+        verify(proxyClient.client(), times(2)).describeReplicator(any(DescribeReplicatorRequest.class));
     }
 }
